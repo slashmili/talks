@@ -72,7 +72,7 @@ The database for MyApp.Repo has been created.
 
 ```
 $ cd my_app
-$ mix phoenix.gen.html Post posts title:string, body:string
+$ mix phoenix.gen.html Post posts title:string body:string
 * creating web/controllers/post_controller.ex
 * creating web/templates/post/edit.html.eex
 * creating web/templates/post/form.html.eex
