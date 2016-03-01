@@ -68,7 +68,7 @@ The database for MyApp.Repo has been created.
 ```
 
 
-## Create Post scaffolding
+### Create Post scaffolding
 
 ```
 $ cd my_app
@@ -129,3 +129,89 @@ mix phoenix.server
 Head to browser http://localhost:4000/posts
 
 Spend some of your time to look at model and controller that phoenix is created for you
+
+### Look into Supervision tree
+
+```
+$ iex -S mix phoenix.server
+iex> :observer.start
+```
+
+## Channels
+
+```
+mix  phoenix.gen.channel Room rooms
+* creating web/channels/room_channel.ex
+* creating test/channels/room_channel_test.exs
+
+Add the channel to your `web/channels/user_socket.ex` handler, for example:
+
+    channel "rooms:lobby", MyApp.RoomChannel
+```
+
+Follow instruction and edit channel file `web/channels/room_channel.ex` to:
+```elixir
+defmodule MyApp.RoomChannel do
+  use MyApp.Web, :channel
+
+  def join("rooms:lobby", payload, socket) do
+    if authorized?(payload) do
+      {:ok, socket}
+    else
+      {:error, %{reason: "unauthorized"}}
+    end
+  end
+
+  def handle_in("new:msg", payload, socket) do
+    broadcast socket, "new:msg", payload
+    {:reply, {:ok, payload}, socket}
+  end
+
+  defp authorized?(_payload) do
+    true
+  end
+end
+```
+
+Enable socket module in `web/static/js/app.js` and update the socket module web/static/js/socket.js:
+
+```javascript
+import {Socket} from "phoenix"
+
+let socket = new Socket("/socket", {params: {token: window.userToken}})
+
+socket.connect()
+
+let channel = socket.channel("rooms:lobby", {})
+channel.join()
+  .receive("ok", resp => {
+      console.log("Joined successfully", resp)
+  })
+  .receive("error", resp => { console.log("Unable to join", resp) })
+
+channel.on("new:msg", (resp) => {
+    var html = `<i>${resp.user}</i>: ${resp.body}<br />`
+    document.getElementById('chat').innerHTML = document.getElementById('chat').innerHTML + html
+    console.log(resp)
+})
+
+let triggerBox = function() {
+    var btn = document.getElementById('msg-snd')
+    btn.onclick = function () {
+       var msg = document.getElementById('msg-box');
+       channel.push("new:msg", {"user": "web", body: msg.value})
+       msg.value = ""
+    }
+}
+document.addEventListener('DOMContentLoaded', triggerBox, false);
+export default socket
+```
+
+Add chat elements to index page in `web/templates/page/index.html.eex`
+
+```html
+<input type="text" id="msg-box"> <input id="msg-snd" type="button" value="send!"> <div id="chat">
+```
+
+Open separate browser and play with your chat server.
+There are libraries to work with Phonix for [iOS](https://github.com/davidstump/SwiftPhoenixClient) and [Android](https://github.com/eoinsha/JavaPhoenixChannels).
