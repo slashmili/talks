@@ -7,9 +7,13 @@ defmodule SshTalk.GitHubKeyAuthentication do
     :ssh_file.host_key(algorithm, daemon_options)
   end
 
-  def is_auth_key({:RSAPublicKey, _, _} = key, username, _daemon_options) do
+  def is_auth_key({:RSAPublicKey, _, _} = key, username, daemon_options) do
+    is_auth_key({key, []}, username, daemon_options)
+  end
+
+  def is_auth_key(key, username, _daemon_options) do
     key_str =
-      [{key, []}]
+      [key]
       |> :public_key.ssh_encode(:auth_keys)
       |> String.trim
     key_str in fetch_github_user_pub_keys(username)
