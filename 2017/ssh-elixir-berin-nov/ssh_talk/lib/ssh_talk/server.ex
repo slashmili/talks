@@ -60,6 +60,17 @@ defmodule SshTalk.Server do
       key_cb: SshTalk.GitHubKeyAuthentication
   end
 
+  def server_with_custom_subsystem do
+    :ssh.daemon 2227,
+      system_dir: String.to_charlist(@root_dir),
+      auth_methods: 'publickey',
+      disconnectfun: &log_it/1,
+      connectfun: &log_it/3,
+      failfun: &log_it/3,
+      key_cb: SshTalk.GitHubKeyAuthentication,
+      subsystems: [{'echo', {SshTalk.EchoSubsystem, []}}]
+  end
+
   defp echo_shell(username, peer) do
     username = to_string(username)
     Logger.debug("echo shell #{inspect username}, #{inspect peer}")
