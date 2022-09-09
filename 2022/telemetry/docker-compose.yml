@@ -1,0 +1,52 @@
+version: '3.9'
+services:
+  influxdb:
+    image: influxdb:2.2.0
+    ports:
+      - "8083:8083"
+      - "8086:8086"
+      - "8090:8090"
+    env_file:
+      - 'docker-compose-configs/influxdb.env'
+
+  
+  grafana:
+    image: grafana/grafana:8.5.3
+    env_file:
+      - 'docker-compose-configs/influxdb.env'
+    ports:
+      - 3000:3000
+    environment:
+      GF_SECURITY_ADMIN_USER: "admin"
+      GF_SECURITY_ADMIN_PASSWORD: "admin"
+    volumes:
+      - ./docker-compose-configs/grafana/provisioning:/etc/grafana/provisioning
+      - ./docker-compose-configs/grafana/conf:/usr/share/grafana/conf
+    depends_on:
+      - influxdb
+      - tempo
+
+  tempo:
+    image: grafana/tempo:1.5.0
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./docker-compose-configs/tempo/tempo.yaml:/etc/tempo.yaml
+    ports:
+      - 8000:8000 # tempo
+      - 4317:4317 # otlp gprc
+      - 4318:4318 # otlp http
+  
+  telegraf:
+    image: telegraf
+    restart: always
+    env_file:
+      - 'docker-compose-configs/influxdb.env'
+    ports:
+      - "8092:8092/udp"
+    links:
+      - influxdb
+    volumes:
+       - ./docker-compose-configs/telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+
+volumes:
+  protobuf_descriptors:
